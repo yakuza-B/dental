@@ -6,7 +6,7 @@ import os
 import requests
 
 # Define the direct download URL for the model file
-MODEL_URL = "https://drive.google.com/uc?id=YOUR_FILE_ID"  # Replace YOUR_FILE_ID with your actual file ID
+MODEL_URL = "https://drive.google.com/uc?id=1BuV2xdN8UEcf1ILWHLBxu3845821HGao"  # Replace with your actual file ID
 MODEL_PATH = "dental_classification_model.h5"
 
 # Download the model file if it doesn't exist
@@ -14,9 +14,12 @@ def download_model():
     if not os.path.exists(MODEL_PATH):
         print("Downloading model...")
         response = requests.get(MODEL_URL)
-        with open(MODEL_PATH, 'wb') as f:
-            f.write(response.content)
-        print("Model downloaded successfully.")
+        if response.status_code == 200:  # Check if the download was successful
+            with open(MODEL_PATH, 'wb') as f:
+                f.write(response.content)
+            print("Model downloaded successfully.")
+        else:
+            print("Failed to download the model. Please check the URL.")
 
 # Load the trained model
 @st.cache(allow_output_mutation=True)
