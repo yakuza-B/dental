@@ -2,11 +2,27 @@ import streamlit as st
 import numpy as np
 from tensorflow.keras.models import load_model
 from PIL import Image
+import os
+import requests
+
+# Define the direct download URL for the model file
+MODEL_URL = "https://drive.google.com/uc?id=YOUR_FILE_ID"  # Replace YOUR_FILE_ID with your actual file ID
+MODEL_PATH = "dental_classification_model.h5"
+
+# Download the model file if it doesn't exist
+def download_model():
+    if not os.path.exists(MODEL_PATH):
+        print("Downloading model...")
+        response = requests.get(MODEL_URL)
+        with open(MODEL_PATH, 'wb') as f:
+            f.write(response.content)
+        print("Model downloaded successfully.")
 
 # Load the trained model
 @st.cache(allow_output_mutation=True)
 def load_trained_model():
-    model = load_model('dental_classification_model.h5')  # Replace with your model path
+    download_model()  # Ensure the model is downloaded
+    model = load_model(MODEL_PATH)
     return model
 
 # Preprocess the uploaded image
