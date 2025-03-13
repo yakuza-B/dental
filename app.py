@@ -1,8 +1,8 @@
-import streamlit as st
-import numpy as np
-import cv2
-from tensorflow.keras.models import load_model
-from PIL import Image
+import streamlit as st  # Streamlit for the web app
+import numpy as np  # NumPy for numerical operations
+import cv2  # OpenCV for image processing
+from tensorflow.keras.models import load_model  # TensorFlow for loading the model
+from PIL import Image  # Pillow for image handling
 
 # Load the trained model
 @st.cache(allow_output_mutation=True)
