@@ -1,8 +1,7 @@
-import streamlit as st  # Streamlit for the web app
-import numpy as np  # NumPy for numerical operations
-import cv2  # OpenCV for image processing
-from tensorflow.keras.models import load_model  # TensorFlow for loading the model
-from PIL import Image  # Pillow for image handling
+import streamlit as st
+import numpy as np
+from tensorflow.keras.models import load_model
+from PIL import Image
 
 # Load the trained model
 @st.cache(allow_output_mutation=True)
@@ -12,14 +11,11 @@ def load_trained_model():
 
 # Preprocess the uploaded image
 def preprocess_image(image, target_size=(224, 224)):
-    # Convert PIL image to NumPy array
-    img = np.array(image)
-    
     # Resize the image
-    img = cv2.resize(img, target_size)
+    img = image.resize(target_size)
     
-    # Convert to float32 and normalize
-    img = img.astype('float32') / 255.0
+    # Convert to NumPy array and normalize
+    img = np.array(img).astype('float32') / 255.0
     
     # Add batch dimension
     img = np.expand_dims(img, axis=0)
