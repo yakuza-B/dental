@@ -1,62 +1,66 @@
 import streamlit as st
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image
 import numpy as np
-from tensorflow.keras.models import load_model
+import cv2
 from PIL import Image
 
 # Load the trained model
-@st.cache(allow_output_mutation=True)
-def load_trained_model():
-    model = load_model('dental_classification_model.h5')  # Replace with your model path
-    return model
+@st.cache_resource
+def load_model():
+    model_path = "model/model.h5"
+    if not os.path.exists(model_path):
+        st.error(f"Model file '{model_path}' not found. Please ensure the model is in the 'model/' directory.")
+        return None
+    return tf.keras.models.load_model(model_path)
 
 # Preprocess the uploaded image
-def preprocess_image(image, target_size=(224, 224)):
-    # Resize the image
-    img = image.resize(target_size)
-    
-    # Convert to NumPy array and normalize
-    img = np.array(img).astype('float32') / 255.0
-    
-    # Add batch dimension
-    img = np.expand_dims(img, axis=0)
-    
-    return img
+def preprocess_image(img):
+    img = img.resize((224, 224))  # Resize to match model input size
+    img_array = image.img_to_array(img)  # Convert to numpy array
+    img_array = img_array / 255.0  # Normalize pixel values
+    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+    return img_array
 
-# Map class indices to class names
-def get_class_name(pred_idx, valid_classes):
-    return valid_classes[pred_idx]
+# Predict the class of the image
+def predict(image, model):
+    preprocessed_img = preprocess_image(image)
+    predictions = model.predict(preprocessed_img)
+    predicted_class = np.argmax(predictions, axis=1)[0]
+    confidence = np.max(predictions)
+    return predicted_class, confidence
 
-# Streamlit app
+# Map class indices to labels
+CLASS_LABELS = {
+    0: "Cavity",
+    1: "Fillings",
+    2: "Impacted Tooth",
+    3: "Implant"
+}
+
+# Streamlit app layout
 def main():
-    st.title("Dental Image Classification")
-    st.write("Upload an image to classify whether it's an Implant, Filling, Impacted Tooth, or Cavity.")
-    
-    # Define valid classes (update based on your dataset)
-    valid_classes = ['Implant', 'Fillings', 'Impacted Tooth', 'Cavity']
-    
+    st.title("Teeth Condition Classifier")
+    st.write("Upload an image of teeth, and the model will predict whether it has a cavity, fillings, impacted tooth, or implant.")
+
     # Load the model
-    model = load_trained_model()
-    
+    model = load_model()
+    if model is None:
+        return
+
     # File uploader
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-    
     if uploaded_file is not None:
         # Display the uploaded image
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image", use_column_width=True)
-        
-        # Preprocess the image
-        processed_image = preprocess_image(image)
-        
-        # Make predictions
-        predictions = model.predict(processed_image)
-        predicted_idx = np.argmax(predictions, axis=1)[0]
-        predicted_class = get_class_name(predicted_idx, valid_classes)
-        confidence = np.max(predictions) * 100
-        
-        # Display the result
-        st.write(f"Prediction: **{predicted_class}**")
-        st.write(f"Confidence: **{confidence:.2f}%**")
+        image_uploaded = Image.open(uploaded_file)
+        st.image(image_uploaded, caption="Uploaded Image", use_column_width=True)
+
+        # Perform prediction
+        if st.button("Predict"):
+            with st.spinner("Predicting..."):
+                predicted_class, confidence = predict(image_uploaded, model)
+                label = CLASS_LABELS.get(predicted_class, "Unknown")
+                st.success(f"Prediction: {label} (Confidence: {confidence:.2f})")
 
 if __name__ == "__main__":
     main()
