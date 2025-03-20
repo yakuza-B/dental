@@ -22,28 +22,27 @@ def load_model():
 
 # Preprocess the uploaded image
 def preprocess_image(img):
-    img = img.convert("RGB")  # Ensure image is RGB
+    img = img.convert("RGB")  # Ensure image is in RGB format
     img = img.resize((224, 224))  # Resize to match model input size
     img_array = image.img_to_array(img)  # Convert to numpy array
     img_array = img_array / 255.0  # Normalize pixel values
     img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
     return img_array
 
-# Predict the class of the image
-def predict(image, model):
+# Predict the class of the image with multi-label support
+def predict(image, model, threshold=0.5):
     preprocessed_img = preprocess_image(image)
-    
-    # Debugging output
-    st.write("Preprocessed Image Shape:", preprocessed_img.shape)
-    
-    predictions = model.predict(preprocessed_img)
-    
-    # Debugging output
-    st.write("Raw Model Predictions:", predictions)
-    
-    predicted_class = np.argmax(predictions, axis=1)[0]
-    confidence = np.max(predictions)
-    return predicted_class, confidence
+    predictions = model.predict(preprocessed_img)[0]  # Get prediction probabilities
+
+    # Identify all conditions above the confidence threshold
+    predicted_classes = [CLASS_LABELS[i] for i, prob in enumerate(predictions) if prob > threshold]
+
+    # If no class meets the threshold, return the highest probability class
+    if not predicted_classes:
+        predicted_classes = [CLASS_LABELS[np.argmax(predictions)]]
+
+    # Return detected conditions and their confidence scores
+    return predicted_classes, predictions
 
 # Map class indices to labels
 CLASS_LABELS = {
@@ -73,13 +72,10 @@ def main():
         # Perform prediction
         if st.button("Predict"):
             with st.spinner("Predicting..."):
-                predicted_class, confidence = predict(image_uploaded, model)
+                predicted_classes, confidences = predict(image_uploaded, model)
                 
-                # Debugging output
-                st.write(f"Predicted Class Index: {predicted_class}")
-                
-                label = CLASS_LABELS.get(predicted_class, "Unknown")
-                st.success(f"Prediction: {label} (Confidence: {confidence:.2f})")
+                # Display multiple predicted conditions
+                st.success(f"Predicted Conditions: {', '.join(predicted_classes)}")
 
 if __name__ == "__main__":
     main()
