@@ -4,6 +4,7 @@ from tensorflow.keras.preprocessing import image
 import numpy as np
 import cv2
 from PIL import Image
+import os
 
 # Load the trained model
 @st.cache_resource
