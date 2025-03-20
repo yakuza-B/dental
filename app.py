@@ -30,19 +30,21 @@ def preprocess_image(img):
     return img_array
 
 # Predict the class of the image with multi-label support
-def predict(image, model, threshold=0.5):
+def predict(image, model, threshold=0.3):  # Lower threshold to detect multiple conditions
     preprocessed_img = preprocess_image(image)
     predictions = model.predict(preprocessed_img)[0]  # Get prediction probabilities
 
     # Identify all conditions above the confidence threshold
-    predicted_classes = [CLASS_LABELS[i] for i, prob in enumerate(predictions) if prob > threshold]
+    detected_conditions = [
+        (CLASS_LABELS[i], predictions[i]) for i in range(len(predictions)) if predictions[i] > threshold
+    ]
 
     # If no class meets the threshold, return the highest probability class
-    if not predicted_classes:
-        predicted_classes = [CLASS_LABELS[np.argmax(predictions)]]
+    if not detected_conditions:
+        max_index = np.argmax(predictions)
+        detected_conditions = [(CLASS_LABELS[max_index], predictions[max_index])]
 
-    # Return detected conditions and their confidence scores
-    return predicted_classes, predictions
+    return detected_conditions
 
 # Map class indices to labels
 CLASS_LABELS = {
@@ -72,10 +74,12 @@ def main():
         # Perform prediction
         if st.button("Predict"):
             with st.spinner("Predicting..."):
-                predicted_classes, confidences = predict(image_uploaded, model)
-                
-                # Display multiple predicted conditions
-                st.success(f"Predicted Conditions: {', '.join(predicted_classes)}")
+                detected_conditions = predict(image_uploaded, model)
+
+                # Display detected conditions and confidence levels
+                st.success("Detected Conditions:")
+                for condition, confidence in detected_conditions:
+                    st.write(f"**{condition}** (Confidence: {confidence:.2f})")
 
 if __name__ == "__main__":
     main()
