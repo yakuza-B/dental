@@ -5,4 +5,4 @@ Pillow
 opencv-python
 matplotlib
 scikit-learn
-opencv-python==4.7.0.72
+
