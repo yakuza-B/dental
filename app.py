@@ -30,9 +30,14 @@ def preprocess_image(img):
     return img_array
 
 # Predict the class of the image with multi-label support
-def predict(image, model, threshold=0.3):  # Lower threshold to detect multiple conditions
+def predict(image, model, threshold=0.2):  # Lower threshold for multi-label detection
     preprocessed_img = preprocess_image(image)
     predictions = model.predict(preprocessed_img)[0]  # Get prediction probabilities
+
+    # Log raw predictions for debugging
+    st.write("### Raw Model Predictions (Confidence Scores)")
+    for i, prob in enumerate(predictions):
+        st.write(f"**{CLASS_LABELS[i]}**: {prob:.2f}")
 
     # Identify all conditions above the confidence threshold
     detected_conditions = [
@@ -56,8 +61,8 @@ CLASS_LABELS = {
 
 # Streamlit app layout
 def main():
-    st.title("Teeth Condition Classifier")
-    st.write("Upload an image of teeth, and the model will predict whether it has a cavity, fillings, impacted tooth, or implant.")
+    st.title("Teeth Condition Classifier 🦷")
+    st.write("Upload an image of teeth, and the model will predict whether it has **Cavity, Fillings, Impacted Tooth, or Implant.**")
 
     # Load the model
     model = load_model()
@@ -77,9 +82,9 @@ def main():
                 detected_conditions = predict(image_uploaded, model)
 
                 # Display detected conditions and confidence levels
-                st.success("Detected Conditions:")
+                st.success("### Detected Conditions:")
                 for condition, confidence in detected_conditions:
-                    st.write(f"**{condition}** (Confidence: {confidence:.2f})")
+                    st.write(f"✅ **{condition}** (Confidence: {confidence:.2f})")
 
 if __name__ == "__main__":
     main()
