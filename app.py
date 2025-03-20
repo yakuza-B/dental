@@ -2,7 +2,6 @@ import streamlit as st
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 import numpy as np
-
 from PIL import Image
 import os
 
@@ -13,10 +12,17 @@ def load_model():
     if not os.path.exists(model_path):
         st.error(f"Model file '{model_path}' not found. Please ensure the model is in the 'model/' directory.")
         return None
-    return tf.keras.models.load_model(model_path)
+    try:
+        model = tf.keras.models.load_model(model_path)
+        st.success("Model loaded successfully!")
+        return model
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        return None
 
 # Preprocess the uploaded image
 def preprocess_image(img):
+    img = img.convert("RGB")  # Ensure image is RGB
     img = img.resize((224, 224))  # Resize to match model input size
     img_array = image.img_to_array(img)  # Convert to numpy array
     img_array = img_array / 255.0  # Normalize pixel values
@@ -26,7 +32,15 @@ def preprocess_image(img):
 # Predict the class of the image
 def predict(image, model):
     preprocessed_img = preprocess_image(image)
+    
+    # Debugging output
+    st.write("Preprocessed Image Shape:", preprocessed_img.shape)
+    
     predictions = model.predict(preprocessed_img)
+    
+    # Debugging output
+    st.write("Raw Model Predictions:", predictions)
+    
     predicted_class = np.argmax(predictions, axis=1)[0]
     confidence = np.max(predictions)
     return predicted_class, confidence
@@ -60,6 +74,10 @@ def main():
         if st.button("Predict"):
             with st.spinner("Predicting..."):
                 predicted_class, confidence = predict(image_uploaded, model)
+                
+                # Debugging output
+                st.write(f"Predicted Class Index: {predicted_class}")
+                
                 label = CLASS_LABELS.get(predicted_class, "Unknown")
                 st.success(f"Prediction: {label} (Confidence: {confidence:.2f})")
 
