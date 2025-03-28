@@ -8,7 +8,7 @@ import os
 # Load the trained model
 @st.cache_resource
 def load_model():
-    model_path = "model/model.H5"  # Path to your trained model
+    model_path = "model/model.h5"  # Path to your trained model
     if not os.path.exists(model_path):
         st.error(f"Model file '{model_path}' not found. Please ensure the model is in the 'model/' directory.")
         return None
