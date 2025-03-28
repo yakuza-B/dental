@@ -2,8 +2,9 @@ import streamlit as st
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 import numpy as np
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import os
+import pandas as pd
 
 # Load the trained model
 @st.cache_resource
@@ -30,21 +31,26 @@ def preprocess_image(img):
     return img_array
 
 # Predict the class of the image
-def predict(image, model):
+def predict(image, model, threshold=0.5):
     preprocessed_img = preprocess_image(image)
     predictions = model.predict(preprocessed_img)[0]  # Get prediction probabilities
 
     # Log raw predictions for debugging
     st.write("### Raw Model Predictions (Confidence Scores)")
-    for i, prob in enumerate(predictions):
-        st.write(f"**{CLASS_LABELS[i]}**: {prob:.2f}")
+    confidence_data = [{"Condition": CLASS_LABELS[i], "Confidence": f"{prob:.2f}"} for i, prob in enumerate(predictions)]
+    st.table(confidence_data)
 
-    # Identify the predicted class with the highest confidence
-    max_index = np.argmax(predictions)
-    predicted_class = CLASS_LABELS[max_index]
-    confidence = predictions[max_index]
+    # Identify all conditions above the confidence threshold (multi-label support)
+    detected_conditions = [
+        (CLASS_LABELS[i], predictions[i]) for i in range(len(predictions)) if predictions[i] > threshold
+    ]
 
-    return predicted_class, confidence
+    # If no class meets the threshold, return the highest probability class
+    if not detected_conditions:
+        max_index = np.argmax(predictions)
+        detected_conditions = [(CLASS_LABELS[max_index], predictions[max_index])]
+
+    return detected_conditions
 
 # Map class indices to labels (ensure these match your dataset)
 CLASS_LABELS = {
@@ -57,7 +63,9 @@ CLASS_LABELS = {
 # Streamlit app layout
 def main():
     st.title("Teeth Condition Classifier 🦷")
-    st.write("Upload an image of teeth, and the model will predict whether it has **Cavity, Fillings, Impacted Tooth, or Implant.**")
+    st.markdown("""
+    Upload an image of teeth, and the model will predict whether it has **Cavity, Fillings, Impacted Tooth, or Implant**.
+    """)
 
     # Load the model
     model = load_model()
@@ -67,19 +75,26 @@ def main():
     # File uploader
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
     if uploaded_file is not None:
-        # Display the uploaded image
-        image_uploaded = Image.open(uploaded_file)
-        st.image(image_uploaded, caption="Uploaded Image", use_column_width=True)
+        try:
+            # Display the uploaded image
+            image_uploaded = Image.open(uploaded_file)
+            st.image(image_uploaded, caption="Uploaded Image", use_column_width=True)
 
-        # Perform prediction
-        if st.button("Predict"):
-            with st.spinner("Predicting..."):
-                predicted_class, confidence = predict(image_uploaded, model)
+            # Perform prediction
+            if st.button("Predict"):
+                with st.spinner("Predicting..."):
+                    detected_conditions = predict(image_uploaded, model)
 
-                # Display the predicted condition and confidence level
-                st.success("### Prediction Result:")
-                st.write(f"✅ **Condition**: {predicted_class}")
-                st.write(f"📊 **Confidence**: {confidence:.2f}")
+                    # Display the predicted conditions and confidence levels
+                    if detected_conditions:
+                        st.success("### Prediction Results:")
+                        for condition, confidence in detected_conditions:
+                            st.write(f"✅ **Condition**: {condition}")
+                            st.write(f"📊 **Confidence**: {confidence:.2f}")
+                    else:
+                        st.warning("No conditions detected above the confidence threshold.")
+        except UnidentifiedImageError:
+            st.error("The uploaded file is not a valid image. Please upload a valid image file.")
 
 if __name__ == "__main__":
     main()
