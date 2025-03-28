@@ -8,7 +8,7 @@ import os
 # Load the trained model
 @st.cache_resource
 def load_model():
-    model_path = "model/model.h5"
+    model_path = "model/model.h5"  # Path to your trained model
     if not os.path.exists(model_path):
         st.error(f"Model file '{model_path}' not found. Please ensure the model is in the 'model/' directory.")
         return None
@@ -29,8 +29,8 @@ def preprocess_image(img):
     img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
     return img_array
 
-# Predict the class of the image with multi-label support
-def predict(image, model, threshold=0.2):  # Lower threshold for multi-label detection
+# Predict the class of the image
+def predict(image, model):
     preprocessed_img = preprocess_image(image)
     predictions = model.predict(preprocessed_img)[0]  # Get prediction probabilities
 
@@ -39,19 +39,14 @@ def predict(image, model, threshold=0.2):  # Lower threshold for multi-label det
     for i, prob in enumerate(predictions):
         st.write(f"**{CLASS_LABELS[i]}**: {prob:.2f}")
 
-    # Identify all conditions above the confidence threshold
-    detected_conditions = [
-        (CLASS_LABELS[i], predictions[i]) for i in range(len(predictions)) if predictions[i] > threshold
-    ]
+    # Identify the predicted class with the highest confidence
+    max_index = np.argmax(predictions)
+    predicted_class = CLASS_LABELS[max_index]
+    confidence = predictions[max_index]
 
-    # If no class meets the threshold, return the highest probability class
-    if not detected_conditions:
-        max_index = np.argmax(predictions)
-        detected_conditions = [(CLASS_LABELS[max_index], predictions[max_index])]
+    return predicted_class, confidence
 
-    return detected_conditions
-
-# Map class indices to labels
+# Map class indices to labels (ensure these match your dataset)
 CLASS_LABELS = {
     0: "Cavity",
     1: "Fillings",
@@ -79,12 +74,12 @@ def main():
         # Perform prediction
         if st.button("Predict"):
             with st.spinner("Predicting..."):
-                detected_conditions = predict(image_uploaded, model)
+                predicted_class, confidence = predict(image_uploaded, model)
 
-                # Display detected conditions and confidence levels
-                st.success("### Detected Conditions:")
-                for condition, confidence in detected_conditions:
-                    st.write(f"✅ **{condition}** (Confidence: {confidence:.2f})")
+                # Display the predicted condition and confidence level
+                st.success("### Prediction Result:")
+                st.write(f"✅ **Condition**: {predicted_class}")
+                st.write(f"📊 **Confidence**: {confidence:.2f}")
 
 if __name__ == "__main__":
     main()
