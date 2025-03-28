@@ -54,20 +54,27 @@ def predict(image, model, threshold=0.5):
     preprocessed_img = preprocess_image(image)
     predictions = model.predict(preprocessed_img)[0]  # Get prediction probabilities
 
+    # Debugging: Print predictions and CLASS_LABELS
+    print("Predictions:", predictions)
+    print("CLASS_LABELS:", CLASS_LABELS)
+
     # Log raw predictions for debugging
-    confidence_data = [{"Condition": CLASS_LABELS[i], "Confidence": f"{prob:.2f}"} for i, prob in enumerate(predictions)]
-    st.write("### Raw Model Predictions (Confidence Scores)")
+    confidence_data = [
+        {"Condition": CLASS_LABELS.get(i, f"Unknown Class {i}"), "Confidence": f"{prob:.2f}"}
+        for i, prob in enumerate(predictions)
+    ]
     st.table(confidence_data)
 
     # Identify all conditions above the confidence threshold
     detected_conditions = [
-        (CLASS_LABELS[i], predictions[i]) for i in range(len(predictions)) if predictions[i] > threshold
+        (CLASS_LABELS.get(i, f"Unknown Class {i}"), predictions[i])
+        for i in range(len(predictions)) if predictions[i] > threshold
     ]
 
     # If no class meets the threshold, return the highest probability class
     if not detected_conditions:
         max_index = np.argmax(predictions)
-        detected_conditions = [(CLASS_LABELS[max_index], predictions[max_index])]
+        detected_conditions = [(CLASS_LABELS.get(max_index, f"Unknown Class {max_index}"), predictions[max_index])]
 
     return detected_conditions
 
